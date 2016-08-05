@@ -1,0 +1,9 @@
+{
+    "server_name": "production",
+    "host": "192.168.56.101",
+    "port": 22,
+    "path": "/home/sebuntu-1/work/fabtest/",
+    "repository": "https://github.com/faoxis/PythonBasicAncApplication",
+    "branch": "master"
+}
+
