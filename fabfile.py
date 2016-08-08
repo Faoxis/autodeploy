@@ -1,107 +1,44 @@
 # coding: utf-8
 import os
 
-from fabric.api import run, env, cd, roles
-from settings.default_settings import *
-from settings.secret_settings import *
+import yaml
+from fabric.decorators import roles
+from fab.main import ServerSSH
+from settings.settings_class import Settings
 
-# Списком можно перечислить несколько серверов, которые у вас считаются "продакшеном"
-env.roledefs[SERVER] = [USER + '@' + HOST + ':' + str(PORT)]
+# Yaml-файл содержит необходимые настройки, в том числе пароли.
+# Нужен тут только для того, чтобы не хранить эту информацию в коммите
+with open('settings/productionserver.yaml') as f:
+    prod_yaml = yaml.load(f.read())
 
-
-def change_server_state(action='restart'):
-    run('echo {password} | sudo -S service {server_name} {action}'.format(server_name=WORK_SERVER,
-                                                                          password=PASSWORD,
-                                                                          action=action))
-    # sudo('service {server_name} {action}'.format(server_name=WORK_SERVER, action=action),
-    #      user=USER, shell=False)
-
-
-def do(action):
-    production_env()
-    with cd(env.project_root):
-        run(action)
+# Аналогично
+with open('settings/testserver.yaml') as f:
+    test_yaml = yaml.load(f.read())
 
 
-def pip(action):
-    production_env()
-    with cd(env.project_root):
-        run('{pip} {action}'.format(pip=env.pip, action=action))
+# Создание объекта с настройками для продакшена
+prouction_settings = Settings()
+prouction_settings.USER = prod_yaml['USER']
+prouction_settings.PASSWORD = prod_yaml['PASSWORD']
 
+# Создание еще одного объекта с настройками для тестового сервера
+test_settings = Settings()
 
-def python(action):
-    production_env()
-    with cd(env.project_root):
-        run('{python} {action}'.format(python=env.python, action=action))
+# Изменение настроек по умолчанию. Можно вынести в отдельный файл.
+# Для этого можно в отдельном файле создать класс, который будет наследоваться от класса Settings.
+test_settings.SERVER = 'test'
+test_settings.USER = test_yaml['USER']
+test_settings.PASSWORD = test_yaml['PASSWORD']
 
+# Создание объекта - удаленного сервера
+production_server = ServerSSH(prouction_settings)
 
-def production_env():
-    """Окружение для продакшена"""
-    env.key_filename = PATH_KEY
-    env.user = USER  # На сервере будем работать из под пользователя
-    env.password = PASSWORD
-    env.project_root = PATH  # Путь до каталога проекта (на сервере)
-    env.python = PYTHON
-    env.pip = PIP
+# Инициализация production-сервера
+@roles(prouction_settings.SERVER)
+def init_production():
+    production_server.init()
 
-
-def venv_update():
-    production_env()
-    with cd(env.project_root):
-        run('rm -rf venv')
-        run('virtualenv venv')
-        run('{pip} install -r {requirements}'.format(pip=env.pip, requirements=VENV_REQUIREMENTS))
-
-
-@roles(SERVER)
-def init():
-    run('mkdir -p {}'.format(PATH))
-    production_env()
-    with cd(env.project_root):
-        run('git init')
-        # run('git remote set-url origin {repository}'.format(repository=REPOSITORY+'.git'))
-        run('git remote add origin {repository}'.format(repository=REPOSITORY))
-        run('echo {password} | sudo -S apt-get -y install virtualenv'.format(password=PASSWORD))
-        run('virtualenv venv')
-
-
-@roles(SERVER)
-def change():
-    production_env()
-    with cd(env.project_root):
-        run('git remote set-url origin {repository}'.format(repository=REPOSITORY))
-
-
-@roles(SERVER)
-def deploy():
-    production_env()  # Инициализация окружения
-    with cd(env.project_root):  # Заходим в директорию с проектом на сервере
-        run('git pull {branch} {fetch}'.format(branch='origin', fetch='master'))  # Пуляемся из репозитория
-        control_service(action='restart')
-
-
-@roles(SERVER)
-def rollback():
-    production_env()
-    with cd(env.project_root):
-        run('git reset --hard HEAD^')
-        control_service(action='restart')
-
-
-
-# @roles(SERVER)
-# def create_dir():
-# do('mkdir something')
-# python('hello.py')
-# pip('install SQLAlchemy')
-
-
-@roles(SERVER)
-def control_service(service=WORK_SERVER, action='restart'):
-    production_env()
-    run('echo {password} | sudo -S service {server_name} {action}'.format(server_name=service,
-                                                                          password=PASSWORD,
-                                                                          action=action))
-
-
-
+# Обновление production-сервера
+@roles(prouction_settings.SERVER)
+def deploy_production():
+    production_server.deploy()
