@@ -43,4 +43,3 @@ def init_production():
 @roles(prouction_settings.SERVER)
 def deploy_production():
     production_server.deploy()
-    

@@ -1,0 +1,7 @@
+settings/secret_settings.py
+settings/testserver.yaml
+settings/productionserver.yaml
+settings/default_settings.py
+.idea/*
+*.pyc
+/plan.txt
