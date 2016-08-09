@@ -38,7 +38,9 @@ production_server = ServerSSH(prouction_settings)
 def init_production():
     production_server.init()
 
+#
 # Обновление production-сервера
 @roles(prouction_settings.SERVER)
 def deploy_production():
     production_server.deploy()
+    
