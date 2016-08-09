@@ -15,31 +15,81 @@ with open('settings/productionserver.yaml') as f:
 with open('settings/testserver.yaml') as f:
     test_yaml = yaml.load(f.read())
 
-
+# ----------------------------- Настройка продакшена --------------------------#
 # Создание объекта с настройками для продакшена
-prouction_settings = Settings()
-prouction_settings.USER = prod_yaml['USER']
-prouction_settings.PASSWORD = prod_yaml['PASSWORD']
+prod_settings = Settings()
+prod_settings.USER = prod_yaml['USER']
+prod_settings.PASSWORD = prod_yaml['PASSWORD']
 
-# Создание еще одного объекта с настройками для тестового сервера
-test_settings = Settings()
+# Создание объекта - удаленного сервера
+production_server = ServerSSH(prod_settings)
+
+
+# Инициализация production-сервера
+@roles(prod_settings.SERVER)
+def init_production():
+    # Метод create_dir нужен для создания рабочего каталога на сервере
+    production_server.create_dir()
+    # Метод init базового класса ServerSSH инициализирует git, устанавливает виртуальное окружение
+    # и скачивает последнюю версию проекта
+    production_server.init()
+    # Метод pip позволяет выполнять команды от имени pip вируального окружения сервера
+    production_server.pip('install -r requirements.txt')
+    # Метод python позволяет выполнять команды "от лица" python виртуального окружения сервера
+    production_server.python('hello.py')  # В данном примере запускает скрипт hello.py,
+    # но вместо него можно было запустить и скрипт с миграцией базы данных
+
+    # Метод control_service позволяет совершать операции restart | stop | start с каким - либо сервисом на сервере
+    # production_server.control_service('restart', 'rabbitmq-server' ) # Сервис можно указать явно
+    production_server.control_service('restart')  # Или просто указать дейтвие,
+    # которое будете применено к серверу по умолчанию
+
+
+# Обновление production-сервера
+@roles(prod_settings.SERVER)
+def deploy_production():
+    production_server.deploy()
+
+
+# Обновление виртуального окружения
+@roles(prod_settings.SERVER)
+def venv_update_production():
+    production_server.venv_update()
+
+
+# --------------------------------------------------------------------------------#
+
+
+# ----------------------------- Настройка тестового сервера ----------------------#
 
 # Изменение настроек по умолчанию. Можно вынести в отдельный файл.
 # Для этого можно в отдельном файле создать класс, который будет наследоваться от класса Settings.
-test_settings.SERVER = 'test'
-test_settings.USER = test_yaml['USER']
-test_settings.PASSWORD = test_yaml['PASSWORD']
+# Тут создается класс только для примера.
+class TestServerSettings(Settings):
+    SERVER = 'test'
+    USER = test_yaml['USER']
+    PASSWORD = test_yaml['PASSWORD']
+    REPOSITORY = test_yaml['REPOSITORY']
+    HOST = test_yaml['HOST']
+    PATH = test_yaml['PATH']
 
-# Создание объекта - удаленного сервера
-production_server = ServerSSH(prouction_settings)
 
-# Инициализация production-сервера
-@roles(prouction_settings.SERVER)
-def init_production():
-    production_server.init()
+# Создание еще одного объекта с настройками для тестового сервера
+test_settings = TestServerSettings()
 
-#
-# Обновление production-сервера
-@roles(prouction_settings.SERVER)
-def deploy_production():
-    production_server.deploy()
+# Создание тестового сервера
+test_server = ServerSSH(test_settings)
+
+
+@roles(test_settings.SERVER)
+def init_test_server():
+    test_server.init()
+
+
+@roles(test_settings.SERVER)
+def deploy_test_server():
+    test_server.deploy()
+    # --------------------------------------------------------------------------------#
+
+
+

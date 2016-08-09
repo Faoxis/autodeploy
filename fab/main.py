@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import yaml
-from fabric.api import run, env, cd
+from fabric.api import run, env, cd, puts
 
 
 class ServerSSH(object):
@@ -24,16 +23,25 @@ class ServerSSH(object):
         env.python = self.settings.PYTHON
         env.pip = self.settings.PIP
 
+    def create_dir(self):
+        run('mkdir -p {}'.format(self.settings.PATH))
+
     # Метод для изменения состояния какого-либо сервиса
-    def change_service_state(self, action='restart'):
-        run('echo {password} | sudo -S service {server_name} {action}'.format(server_name=self.settings.WORK_SERVER,
+    def control_service(self, action='restart', service=None):
+        if service is None:
+            if self.settings.WORK_SERVER is None:
+                return
+            service = self.settings.WORK_SERVER
+        run('echo {password} | sudo -S service {server_name} {action}'.format(server_name=service,
                                                                               password=self.settings.PASSWORD,
                                                                               action=action))
+        puts('{service} has been {action}ed'.format(service=service, action=action))
 
     # Метода для выполнения какой-либо программы внутри корневого каталога с проектом
     def do(self, action):
         with cd(env.project_root):
             run(action)
+        puts('{action} is completed'.format(action=action))
 
     # Метода для выполнения команды "от лица" pip из вируального окружения
     def pip(self, action):
@@ -52,17 +60,17 @@ class ServerSSH(object):
         with cd(env.project_root):
             run('rm -rf venv')
             run('virtualenv venv')
-            run('{pip} install -r {requirements}'.format(pip=env.pip, requirements=self.settings.VENV_REQUIREMENTS))
+            # run('{pip} install -r {requirements}'.format(pip=env.pip, requirements=self.settings.VENV_REQUIREMENTS))
 
     # Подготовка окружения на удаленном компьютере к работе
     def init(self):
-        run('mkdir -p {}'.format(self.settings.PATH))
         with cd(env.project_root):
             run('git init')
             # run('git remote set-url origin {repository}'.format(repository=REPOSITORY+'.git'))
             run('git remote add origin {repository}'.format(repository=self.settings.REPOSITORY))
             run('echo {password} | sudo -S apt-get -y install virtualenv'.format(password=self.settings.PASSWORD))
             run('virtualenv venv')
+        self.deploy()
 
     # Метод для изменения пути до репозитория
     def change_repository(self):
@@ -73,7 +81,6 @@ class ServerSSH(object):
     def deploy(self):
         with cd(env.project_root):  # Заходим в директорию с проектом на сервере
             run('git pull {branch} {fetch}'.format(branch='origin', fetch='master'))  # Пуляемся из репозитория
-            self.control_service(action='restart')
 
     # Метод для отката последнего изменения (по коммиту)
     def rollback(self):
