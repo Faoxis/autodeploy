@@ -4,12 +4,14 @@ from fabric.api import env, puts
 
 from fab.serverssh import ServerSSH
 
-# Функция для перебора всех хостов в yaml-файле
+
+# Генератор для перебора всех хостов в yaml-файле
 def _get_hosts(filename):
     with open(filename) as f:
         config = yaml.load(f.read())
         for host in config['HOSTS']:
             yield host
+
 
 # Функция для вывода собщения об обязательном входном параметре
 def _puts_not_yaml_message(func_name):
@@ -17,8 +19,14 @@ def _puts_not_yaml_message(func_name):
     puts('fab {func_name}:production.yaml'.format(func_name=func_name))
 
 
+def before_init():
+    return list('Nothing')
+
+
 # ---------------------------- Инициализация окружения ---------------------------------------- #
 def init(yaml_file=None, service=None):
+    actions = list()
+
     if not yaml_file:
         _puts_not_yaml_message('init')
         return
@@ -26,13 +34,16 @@ def init(yaml_file=None, service=None):
     try:
         before_init()
     except NameError:
-        pass
+        puts('there is no function before_init')
+
+    puts(actions)
 
     hosts = _get_hosts(yaml_file)
     try:
         while True:
             host = next(hosts)
             server = ServerSSH(yaml_file, host)
+
             server.delete_dir()
             server.create_dir()
             server.do('sudo apt-get install git')
@@ -42,8 +53,8 @@ def init(yaml_file=None, service=None):
                 server.control_service(service=service, action='start')
             else:
                 server.control_service(action='start')
-            # if not service:
-            #     raise Exception('My exception here!')
+                # if not service:
+                #     raise Exception('My exception here!')
     except StopIteration:
         pass
 
@@ -51,6 +62,8 @@ def init(yaml_file=None, service=None):
         after_init()
     except NameError:
         pass
+
+
 # -------------------------------------------------------------------------------------------------- #
 
 # -------------------------------- Обовление окружения --------------------------------------------- #
@@ -83,6 +96,8 @@ def deploy(yaml_file=None, service=None):
         after_deploy()
     except NameError:
         pass
+
+
 # -------------------------------------------------------------------------------------------------- #
 
 
@@ -117,7 +132,5 @@ def rollback(yaml_file=None, service=None, hash=None):
         after_rollback()
     except NameError:
         pass
+
 # -------------------------------------------------------------------------------------------------- #
-
-
-
