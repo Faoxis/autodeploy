@@ -1,10 +1,15 @@
-from fabric.state import env
+import fablib
 
+from fab.serverssh import ServerSSH
 from fablib import init, deploy, rollback
+from fabric.api import puts
 
-# fablib.before_init = lambda: 'Hello there'
+
 
 def before_init():
-    return 'Hello there'
+    server = ServerSSH(yaml_file)
+
+def after_init():
+    puts('hello')
 
 

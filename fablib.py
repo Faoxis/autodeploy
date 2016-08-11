@@ -1,79 +1,123 @@
 # coding: utf-8
 import yaml
-from fabric.api import env, run
+from fabric.api import env, puts
 
 from fab.serverssh import ServerSSH
 
-env.hosts = []
-
-
-def before_init():
-    pass
-
-
-def after_init():
-    pass
-
-
-def before_deploy():
-    pass
-
-
-def after_deploy():
-    pass
-
-
-def before_rollback():
-    pass
-
-
-def after_rollback():
-    pass
-
-
-def get_hosts(filename):
+# Функция для перебора всех хостов в yaml-файле
+def _get_hosts(filename):
     with open(filename) as f:
         config = yaml.load(f.read())
         for host in config['HOSTS']:
             yield host
-            # env.hosts += [host]
+
+# Функция для вывода собщения об обязательном входном параметре
+def _puts_not_yaml_message(func_name):
+    puts('Enter path to yaml file like that:')
+    puts('fab {func_name}:production.yaml'.format(func_name=func_name))
 
 
-def init(service=None):
-    before_init()
-    hosts = get_hosts(env.rcfile)
+# ---------------------------- Инициализация окружения ---------------------------------------- #
+def init(yaml_file=None, service=None):
+    if not yaml_file:
+        _puts_not_yaml_message('init')
+        return
+
+    try:
+        before_init()
+    except NameError:
+        pass
+
+    hosts = _get_hosts(yaml_file)
     try:
         while True:
             host = next(hosts)
-            server = ServerSSH(env.rcfile, host)
+            server = ServerSSH(yaml_file, host)
+            server.delete_dir()
             server.create_dir()
-            server.do('sudo apt-get install gcc')
-            server.do('sudo apt-get install build-essential autoconf libtool pkg-config python-opengl python-imaging ' +
-                      'python-pyrex python-pyside.qtopengl idle-python2.7 qt4-dev-tools qt4-designer libqtgui4 ' +
-                      'libqtcore4 libqt4-xml libqt4-test libqt4-script libqt4-network libqt4-dbus python-qt4 ' +
-                      'python-qt4-gl libgle3 python-dev libxml2-dev libxslt1-dev libevent-dev')
+            server.do('sudo apt-get install git')
             server.init()
             server.pip_install_requirements()
-            if not service:
+            if service:
                 server.control_service(service=service, action='start')
+            else:
+                server.control_service(action='start')
+            # if not service:
+            #     raise Exception('My exception here!')
     except StopIteration:
         pass
-    after_init()
+
+    try:
+        after_init()
+    except NameError:
+        pass
+# -------------------------------------------------------------------------------------------------- #
+
+# -------------------------------- Обовление окружения --------------------------------------------- #
+def deploy(yaml_file=None, service=None):
+    if not yaml_file:
+        _puts_not_yaml_message('deploy')
+        return
+
+    try:
+        before_deploy()
+    except NameError:
+        pass
+
+    hosts = _get_hosts(yaml_file)
+    try:
+        while True:
+            host = next(hosts)
+            server = ServerSSH(yaml_file, host)
+            server.deploy()
+            server.venv_update()
+            server.pip_install_requirements()
+            if service:
+                server.control_service(service=service, action='restart')
+            else:
+                server.control_service(action='restart')
+    except StopIteration:
+        pass
+
+    try:
+        after_deploy()
+    except NameError:
+        pass
+# -------------------------------------------------------------------------------------------------- #
 
 
-def deploy(service=None):
-    before_deploy()
-    server = ServerSSH(env.rcfile)
-    server.deploy()
-    if not service:
-        server.control_service(service=service, action='restart')
-    after_deploy()
+# ------------------------------------ Откат окружения --------------------------------------------- #
+def rollback(yaml_file=None, service=None, hash=None):
+    if not yaml_file:
+        _puts_not_yaml_message('rollback')
+        return
+
+    try:
+        before_rollback()
+    except NameError:
+        pass
+
+    hosts = _get_hosts(yaml_file)
+    try:
+        while True:
+            host = next(hosts)
+            server = ServerSSH(yaml_file, host)
+            server.rollback(hash)
+            server.venv_update()
+            server.pip_install_requirements()
+            if service:
+                server.control_service(service=service, action='restart')
+            else:
+                server.control_service('restart')
+
+    except StopIteration:
+        pass
+
+    try:
+        after_rollback()
+    except NameError:
+        pass
+# -------------------------------------------------------------------------------------------------- #
 
 
-def rollback(service=None):
-    before_rollback()
-    server = ServerSSH(env.rcfile)
-    server.rollback()
-    if not service:
-        server.control_service(service=service, action='restart')
-    after_rollback()
+

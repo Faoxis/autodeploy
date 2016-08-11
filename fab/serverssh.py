@@ -7,19 +7,16 @@ from fabric.api import run, env, cd, puts
 class ServerSSH(object):
     # В конструктор класса передается объект класса Settings,
     # который содержит в себе все необходимые настройки
-    def __init__(self, yaml_file):
+    def __init__(self, yaml_file, host):
+
         with open(yaml_file) as f:
             yaml_config = yaml.load(f.read())
 
-        # Сразу же необходимо "сказать" библиотеке fabric о создании новой роли
-        env.roledefs[yaml_config['SERVER']] = [yaml_config['USER'] + '@' +
-                                               yaml_config['HOST'] + ':' +
-                                               str(yaml_config['PORT'])]
+        env['host_string'] = host
 
         # Инициализация окружения
         env.key_filename = yaml_config['PATH_KEY']
-        env.user = yaml_config['USER']
-        env.password = yaml_config['PASSWORD']
+        env.user = host.split('@')[0]
         env.project_root = yaml_config['PATH']
 
         try:
@@ -35,22 +32,34 @@ class ServerSSH(object):
         self.config_server = yaml_config['WORK_SERVER']
         self.repository = yaml_config['REPOSITORY']
         self.path = yaml_config['PATH']
-        self.name = yaml_config['SERVER']
-
+        self.branch = yaml_config['BRANCH']
+        self.requirements = yaml_config['VENV_REQUIREMENTS']
+        
     # Создание папки с виртуальным окружением
     def create_dir(self):
         run('mkdir -p {}'.format(self.path))
 
-    def pip_install_requirements(self):
-        self.pip('install -r requirements.txt')
+    def delete_dir(self):
+        run('rm -rf {}'.format(self.path))
+
+    # Установка требуемых для нормальной работы плагинов
+    def pip_install_requirements(self, requirements=None):
+        req_command = 'install -r {requirements}'
+        if not requirements:
+            self.pip(req_command.format(requirements=self.requirements))
+        else:
+            self.pip(req_command.format(requirements=requirements))
 
     # Метод для изменения состояния какого-либо сервиса
     def control_service(self, action='restart', service=None):
         if service is None:
             service = self.config_server
+            if service == 'None':
+                return
         run('sudo service {server_name} {action}'.format(server_name=service,
                                                          action=action))
-        puts('{service} has been {action}ed'.format(service=service, action=action))
+        puts('{service} has been {action}ed'.format(service=service,
+                                                    action=action))
 
     # Метода для выполнения какой-либо программы внутри корневого каталога с проектом
     def do(self, action):
@@ -85,16 +94,30 @@ class ServerSSH(object):
 
     # Метод для обновления проекта
     def deploy(self):
-        with cd(env.project_root):  # Заходим в директорию с проектом на сервере
-            run('git pull {branch} {fetch}'.format(branch='origin', fetch='master'))  # Пуляемся из репозитория
+        with cd(env.project_root):
+            run('git pull origin {branch}'.format(branch=self.branch))
+
+
+    # Метод для отката с определенному коммиту
+    def rollback(self, hash=None):
+        if not hash:
+            self.rollback_on_commit()
+        else:
+            with cd(env.project_root):
+                run('git reset --hard {hash}'.format(hash=hash))
+
 
     # Метод для отката последнего изменения (по коммиту)
-    def rollback(self):
+    def rollback_on_commit(self):
         with cd(env.project_root):
             run('git reset --hard HEAD^')
-            self.control_service(action='restart')
-
-    def get_name(self):
-        return self.name
 
 
+    # Метод для полного обновления вируального окружения
+    # Подразумевается, что в проекте присутствует файл requirements.txt
+    # Имя файла можно поменять в объекте с настройками
+    def venv_update(self):
+        with cd(env.project_root):
+            run('rm -rf venv')
+            run('virtualenv venv')
+            # self.pip_install_requirements()
