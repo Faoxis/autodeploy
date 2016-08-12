@@ -1,16 +1,21 @@
 # coding: utf-8
 import yaml
 from fabric.api import env, puts
-
 from fab.serverssh import ServerSSH
+
+before_init = []
+after_init = []
+before_deploy = []
+after_deploy = []
+before_rollback = []
+after_rollback = []
 
 
 # Генератор для перебора всех хостов в yaml-файле
 def _get_hosts(filename):
     with open(filename) as f:
         config = yaml.load(f.read())
-        for host in config['HOSTS']:
-            yield host
+        return config['hosts']
 
 
 # Функция для вывода собщения об обязательном входном параметре
@@ -19,52 +24,33 @@ def _puts_not_yaml_message(func_name):
     puts('fab {func_name}:production.yaml'.format(func_name=func_name))
 
 
-def before_init():
-    return list('Nothing')
-
-
 # ---------------------------- Инициализация окружения ---------------------------------------- #
 def init(yaml_file=None, service=None):
-    actions = list()
-
     if not yaml_file:
         _puts_not_yaml_message('init')
         return
 
-    try:
-        before_init()
-    except NameError:
-        puts('there is no function before_init')
-
-    puts(actions)
-
     hosts = _get_hosts(yaml_file)
-    try:
-        while True:
-            host = next(hosts)
-            server = ServerSSH(yaml_file, host)
+    for host in hosts:
+        server = ServerSSH(yaml_file, host)
+        server.create_dir()
 
-            server.delete_dir()
-            server.create_dir()
-            server.do('sudo apt-get install git')
-            server.init()
-            server.pip_install_requirements()
-            if service:
-                server.control_service(service=service, action='start')
-            else:
-                server.control_service(action='start')
-                # if not service:
-                #     raise Exception('My exception here!')
-    except StopIteration:
-        pass
+        for f in before_init:
+            server.do(f())
 
-    try:
-        after_init()
-    except NameError:
-        pass
+        server.do('sudo apt-get install git')
+        server.init()
+        server.pip_install_requirements()
+        if service:
+            server.control_service(service=service, action='start')
+        else:
+            server.control_service(action='start')
+        server.run_migrate_command()
 
-
+        for f in after_init:
+            server.do(f())
 # -------------------------------------------------------------------------------------------------- #
+
 
 # -------------------------------- Обовление окружения --------------------------------------------- #
 def deploy(yaml_file=None, service=None):
@@ -72,65 +58,58 @@ def deploy(yaml_file=None, service=None):
         _puts_not_yaml_message('deploy')
         return
 
-    try:
-        before_deploy()
-    except NameError:
-        pass
-
     hosts = _get_hosts(yaml_file)
-    try:
-        while True:
-            host = next(hosts)
-            server = ServerSSH(yaml_file, host)
-            server.deploy()
-            server.venv_update()
-            server.pip_install_requirements()
-            if service:
-                server.control_service(service=service, action='restart')
-            else:
-                server.control_service(action='restart')
-    except StopIteration:
-        pass
+    for host in hosts:
+        server = ServerSSH(yaml_file, host)
 
-    try:
-        after_deploy()
-    except NameError:
-        pass
+        for f in before_deploy:
+            server.do(f())
 
+        server.deploy()
+        server.pip_install_requirements()
+        if service:
+            server.control_service(service=service, action='restart')
+        else:
+            server.control_service(action='restart')
+        server.run_migrate_command()
+
+        for f in after_deploy:
+            server.do(f())
 
 # -------------------------------------------------------------------------------------------------- #
 
 
 # ------------------------------------ Откат окружения --------------------------------------------- #
-def rollback(yaml_file=None, service=None, hash=None):
+def rollback(yaml_file=None, service=None, commit_hash=None):
     if not yaml_file:
         _puts_not_yaml_message('rollback')
         return
 
-    try:
-        before_rollback()
-    except NameError:
-        pass
-
     hosts = _get_hosts(yaml_file)
-    try:
-        while True:
-            host = next(hosts)
-            server = ServerSSH(yaml_file, host)
-            server.rollback(hash)
-            server.venv_update()
-            server.pip_install_requirements()
-            if service:
-                server.control_service(service=service, action='restart')
-            else:
-                server.control_service('restart')
+    for host in hosts:
+        server = ServerSSH(yaml_file, host)
 
-    except StopIteration:
-        pass
+        for f in before_rollback:
+            server.do(f())
 
-    try:
-        after_rollback()
-    except NameError:
-        pass
+        server.rollback(commit_hash)
+        server.pip_install_requirements()
 
+        if service:
+            server.control_service(service=service, action='restart')
+        else:
+            server.control_service('restart')
+        server.run_migrate_command()
+
+        for f in after_rollback:
+            server.do(f())
+# -------------------------------------------------------------------------------------------------- #
+
+
+# --------------------------------- Удаление проекта целиком с сервера ----------------------------- #
+def clear(yaml_file):
+    hosts = _get_hosts(yaml_file)
+    for host in hosts:
+        server = ServerSSH(yaml_file, host)
+        server.delete_dir()
 # -------------------------------------------------------------------------------------------------- #

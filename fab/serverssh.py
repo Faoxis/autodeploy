@@ -15,26 +15,36 @@ class ServerSSH(object):
         env['host_string'] = host
 
         # Инициализация окружения
-        env.key_filename = yaml_config['PATH_KEY']
+        env.key_filename = yaml_config['path_key']
         env.user = host.split('@')[0]
-        env.project_root = yaml_config['PATH']
+        env.project_root = yaml_config['path']
 
         try:
-            env.python = yaml_config['PYTHON']
+            env.python = yaml_config['python']
         except KeyError:
             env.python = os.path.join(env.project_root, 'venv/bin/python')
 
         try:
-            env.pip = yaml_config['PIP']
+            env.pip = yaml_config['pip']
         except KeyError:
             env.pip = os.path.join(env.project_root, 'venv/bin/pip')
 
-        self.config_server = yaml_config['WORK_SERVER']
-        self.repository = yaml_config['REPOSITORY']
-        self.path = yaml_config['PATH']
-        self.branch = yaml_config['BRANCH']
-        self.requirements = yaml_config['VENV_REQUIREMENTS']
-        
+        try:
+            self.branch = yaml_config['branch']
+        except KeyError:
+            self.branch = 'master'
+
+        try:
+            self.requirements = yaml_config['venv_requirements']
+        except:
+            self.requirements = 'requirements.txt'
+
+        self.config_server = yaml_config['work_server']
+        self.repository = yaml_config['repository']
+        self.path = yaml_config['path']
+        self.migrate_command = yaml_config['migrate_command']
+
+
     # Создание папки с виртуальным окружением
     def create_dir(self):
         run('mkdir -p {}'.format(self.path))
@@ -97,7 +107,6 @@ class ServerSSH(object):
         with cd(env.project_root):
             run('git pull origin {branch}'.format(branch=self.branch))
 
-
     # Метод для отката с определенному коммиту
     def rollback(self, hash=None):
         if not hash:
@@ -106,12 +115,10 @@ class ServerSSH(object):
             with cd(env.project_root):
                 run('git reset --hard {hash}'.format(hash=hash))
 
-
     # Метод для отката последнего изменения (по коммиту)
     def rollback_on_commit(self):
         with cd(env.project_root):
             run('git reset --hard HEAD^')
-
 
     # Метод для полного обновления вируального окружения
     # Подразумевается, что в проекте присутствует файл requirements.txt
@@ -121,3 +128,6 @@ class ServerSSH(object):
             run('rm -rf venv')
             run('virtualenv venv')
             # self.pip_install_requirements()
+
+    def run_migrate_command(self):
+        self.do(self.migrate_command)
