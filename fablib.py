@@ -1,7 +1,8 @@
 # coding: utf-8
 import yaml
-from fabric.api import env, puts
-from fab.serverssh import ServerSSH
+from fabric.api import puts
+
+from serverssh import ServerSSH
 
 before_init = []
 after_init = []
@@ -36,9 +37,9 @@ def init(yaml_file=None, service=None):
         server.create_dir()
 
         for f in before_init:
-            server.do(f())
+            server.do(f)
 
-        server.do('sudo apt-get install git')
+        server.run('sudo apt-get install git')
         server.init()
         server.pip_install_requirements()
         if service:
@@ -48,7 +49,7 @@ def init(yaml_file=None, service=None):
         server.run_migrate_command()
 
         for f in after_init:
-            server.do(f())
+            server.do(f)
 # -------------------------------------------------------------------------------------------------- #
 
 
@@ -63,7 +64,7 @@ def deploy(yaml_file=None, service=None):
         server = ServerSSH(yaml_file, host)
 
         for f in before_deploy:
-            server.do(f())
+            server.do(f)
 
         server.deploy()
         server.pip_install_requirements()
@@ -74,8 +75,7 @@ def deploy(yaml_file=None, service=None):
         server.run_migrate_command()
 
         for f in after_deploy:
-            server.do(f())
-
+            server.do(f)
 # -------------------------------------------------------------------------------------------------- #
 
 
@@ -90,7 +90,7 @@ def rollback(yaml_file=None, service=None, commit_hash=None):
         server = ServerSSH(yaml_file, host)
 
         for f in before_rollback:
-            server.do(f())
+            server.do(f)
 
         server.rollback(commit_hash)
         server.pip_install_requirements()
@@ -102,7 +102,7 @@ def rollback(yaml_file=None, service=None, commit_hash=None):
         server.run_migrate_command()
 
         for f in after_rollback:
-            server.do(f())
+            server.do(f)
 # -------------------------------------------------------------------------------------------------- #
 
 

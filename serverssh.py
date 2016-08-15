@@ -39,7 +39,7 @@ class ServerSSH(object):
         except:
             self.requirements = 'requirements.txt'
 
-        self.config_server = yaml_config['work_server']
+        self.config_server = yaml_config['work_service']
         self.repository = yaml_config['repository']
         self.path = yaml_config['path']
         self.migrate_command = yaml_config['migrate_command']
@@ -72,10 +72,14 @@ class ServerSSH(object):
                                                     action=action))
 
     # Метода для выполнения какой-либо программы внутри корневого каталога с проектом
-    def do(self, action):
+    def run(self, action):
         with cd(env.project_root):
             run(action)
-        puts('{action} is completed'.format(action=action))
+
+    # Запуск стронней функции
+    def do(self, f):
+        with cd(env.project_root):
+            f()
 
     # Методы для выполнения команды "от лица" pip из вируального окружения
     def pip(self, action):
@@ -130,4 +134,4 @@ class ServerSSH(object):
             # self.pip_install_requirements()
 
     def run_migrate_command(self):
-        self.do(self.migrate_command)
+        self.run(self.migrate_command)

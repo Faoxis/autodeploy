@@ -7,7 +7,7 @@ pip: venv/bin/pip # не обязательно
 hosts:
     - sebuntu@192.168.15.149:22
     - sebuntu@192.168.13.232:22
-work_server: rabbitmq-server
+work_service: rabbitmq-server
 path: ~/work/fabtest/
 repository: https://github.com/faoxis/gittest.git
 path_key: ~/.ssh/id_rsa

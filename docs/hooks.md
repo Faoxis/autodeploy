@@ -15,5 +15,16 @@
 2. Определить функцию `func` или ряд функций, которые будут запущены перед выполнением `init`.
 3. Добавить нужные функции в список вызовом `fablib.before_init.append(func)`.
 
-**При добавлении нескольких функций в список следует помнить о порядке их выполнения**
+**При добавлении нескольких функций в список следует помнить о порядке их выполнения.**
 
+## Пример хуков
+
+`fablib.before_init.append(lambda: run('echo "hello from before init" >> hello.txt'))`
+`fablib.before_deploy.append(lambda: run('echo "Hello from deploy" >> hello.txt'))`
+`fablib.before_rollback.append(lambda: run('echo "Hello from rollback" >> hello.txt'))`
+
+`fablib.after_init.append(lambda: run('echo "Bye from init" >> bye.txt'))`
+`fablib.after_deploy.append(lambda: run('echo "Bye from deploy" >> bye.txt'))`
+`fablib.after_rollback.append(lambda: run('echo "Bye from rollback" >> bye.txt'))`
+
+**[Обратно к README](../README.md)**
