@@ -1,8 +1,6 @@
 from fabric.api import run
 
-import fablib
-from fablib import init, deploy, rollback, before_init, before_deploy, before_rollback, after_rollback, after_deploy, after_init, clear
-
+from work import fablib
 
 fablib.before_init.append(lambda: run('echo "hello from before init" >> hello.txt'))
 fablib.before_deploy.append(lambda: run('echo "Hello from deploy" >> hello.txt'))
