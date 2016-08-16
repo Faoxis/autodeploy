@@ -26,7 +26,7 @@ def _puts_not_yaml_message(func_name):
 
 
 # ---------------------------- Инициализация окружения ---------------------------------------- #
-def init(yaml_file=None, service=None):
+def init(yaml_file='config/production.yaml', service=None):
     if not yaml_file:
         _puts_not_yaml_message('init')
         return
@@ -54,7 +54,7 @@ def init(yaml_file=None, service=None):
 
 
 # -------------------------------- Обовление окружения --------------------------------------------- #
-def deploy(yaml_file=None, service=None):
+def deploy(yaml_file='config/production.yaml', service=None):
     if not yaml_file:
         _puts_not_yaml_message('deploy')
         return
@@ -80,7 +80,7 @@ def deploy(yaml_file=None, service=None):
 
 
 # ------------------------------------ Откат окружения --------------------------------------------- #
-def rollback(yaml_file=None, service=None, commit_hash=None):
+def rollback(yaml_file='config/production.yaml', service=None, commit_hash=None):
     if not yaml_file:
         _puts_not_yaml_message('rollback')
         return
@@ -107,7 +107,7 @@ def rollback(yaml_file=None, service=None, commit_hash=None):
 
 
 # --------------------------------- Удаление проекта целиком с сервера ----------------------------- #
-def clear(yaml_file):
+def clear(yaml_file='config/production.yaml'):
     hosts = _get_hosts(yaml_file)
     for host in hosts:
         server = ServerSSH(yaml_file, host)
