@@ -2,7 +2,7 @@
 import yaml
 from fabric.api import puts
 
-from work.serverssh import ServerSSH
+from classes.serverssh import ServerSSH
 
 before_init = []
 after_init = []
