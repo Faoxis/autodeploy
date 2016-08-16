@@ -17,14 +17,17 @@
 
 **При добавлении нескольких функций в список следует помнить о порядке их выполнения.**
 
-## Пример хуков
+## Пример использования хуков
 
-`fablib.before_init.append(lambda: run('echo "hello from before init" >> hello.txt'))`
-`fablib.before_deploy.append(lambda: run('echo "Hello from deploy" >> hello.txt'))`
-`fablib.before_rollback.append(lambda: run('echo "Hello from rollback" >> hello.txt'))`
+`import autodeploy.fablib as fl`
 
-`fablib.after_init.append(lambda: run('echo "Bye from init" >> bye.txt'))`
-`fablib.after_deploy.append(lambda: run('echo "Bye from deploy" >> bye.txt'))`
-`fablib.after_rollback.append(lambda: run('echo "Bye from rollback" >> bye.txt'))`
+`fl.before_init.append(lambda: run('echo "hello from before init" >> hello.txt'))`
+`fl.before_deploy.append(lambda: run('echo "Hello from deploy" >> hello.txt'))`
+`fl.before_rollback.append(lambda: run('echo "Hello from rollback" >> hello.txt'))`
+
+`fl.after_init.append(lambda: run('echo "Bye from init" >> bye.txt'))`
+`fl.after_deploy.append(lambda: run('echo "Bye from deploy" >> bye.txt'))`
+`fl.after_rollback.append(lambda: run('echo "Bye from rollback" >> bye.txt'))`
+
 
 **[Обратно к README](../README.md)**
