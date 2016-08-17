@@ -36,14 +36,13 @@ class ServerSSH(object):
 
         try:
             self.requirements = yaml_config['venv_requirements']
-        except:
+        except KeyError:
             self.requirements = 'requirements.txt'
 
         self.config_server = yaml_config['work_service']
         self.repository = yaml_config['repository']
         self.path = yaml_config['path']
         self.migrate_command = yaml_config['migrate_command']
-
 
     # Создание папки с виртуальным окружением
     def create_dir(self):
@@ -68,8 +67,6 @@ class ServerSSH(object):
                 return
         run('sudo service {server_name} {action}'.format(server_name=service,
                                                          action=action))
-        puts('{service} has been {action}ed'.format(service=service,
-                                                    action=action))
 
     # Метода для выполнения какой-либо программы внутри корневого каталога с проектом
     def run(self, action):
@@ -95,7 +92,6 @@ class ServerSSH(object):
     def init(self):
         with cd(env.project_root):
             run('git init')
-            # run('git remote set-url origin {repository}'.format(repository=REPOSITORY+'.git'))
             run('git remote add origin {repository}'.format(repository=self.repository))
             run('sudo apt-get -y install virtualenv')
             run('virtualenv venv')
@@ -131,7 +127,6 @@ class ServerSSH(object):
         with cd(env.project_root):
             run('rm -rf venv')
             run('virtualenv venv')
-            # self.pip_install_requirements()
 
     def run_migrate_command(self):
         self.run(self.migrate_command)
