@@ -3,18 +3,32 @@
 
 ## Поряд работы с библиотекой:
 1. Установить плагин.
+    ``` shell
+    pip install autodeploy
+    ```
 2. Создать файл fabfile.py
-3. Установить библиотеку [fabric](http://www.fabfile.org/installing.html) и [pyyaml](http://pyyaml.org/). 
-4. В модуле fabfile сделать импорт из модуля fablib следующих функций:
+    ``` shell
+    touch fabfile.py
+    ```
+3. Установить библиотеку [fabric](http://www.fabfile.org/installing.html) и [pyyaml](http://pyyaml.org/).
+    ``` shell
+    pip install pyyaml
+    pip install fabric
+    ```
+4. В модуле `fabfile` сделать импорт из модуля `fablib` следующих функций:
     1. init - функция для инициализации проекта на сервере. 
     2. deploy - функция обновления проекта на сервере.
     3. rollback - функция для отката приложения на определенную версию.
+    4. clear - функция удаления директории с проектом.
+    ``` python
+    from autodeploy.fablib import init, deploy, rollback, clear
+    ```
 5. Запустить функцию из консоли командой `fab init:some.yaml`, где
-    1. fab - ключевое слово для библиотеки fabric
-    2. init - одна из функций модуля fablib. Может быть заменена на 
-    deploy или rollback.
-    3. some.yaml - yaml файл с конфигурацией проекта на сервере.
-
+    1. `fab` - ключевое слово для библиотеки `fabric`
+    2. `init` - одна из функций модуля `fablib`. Может быть заменена на 
+    `deploy` или `rollback`.
+    3. `some.yaml` - yaml файл с конфигурацией проекта на сервере.
+    Указывать `yaml`-файл не обязательно, по умолчанию берется файл `production.yaml` из папки `config`.
 
 ## Содержание файла с конфигурациями
 

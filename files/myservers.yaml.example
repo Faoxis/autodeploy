@@ -1,7 +1,7 @@
-branch: master # не обязательно
-venv_requirements: requirements.txt # не обязательно указывать
-python: venv/bin/python # не обязательно
-pip: venv/bin/pip # не обязательно
+branch: master
+venv_requirements: requirements.txt
+python: venv/bin/python
+pip: venv/bin/pip
 
 
 hosts:
