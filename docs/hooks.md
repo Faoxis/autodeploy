@@ -1,12 +1,12 @@
 # Работа с хуками
 
 ## Виды хуков:
-1. `before_init`
-2. `after_init` 
-3. `before_deploy`
-4. `after_deploy`
-5. `before_rollback`
-6. `after_rollback`
+* `before_init`
+* `after_init` 
+* `before_deploy`
+* `after_deploy`
+* `before_rollback`
+* `after_rollback`
 
 
 ## Порядок работы с хуками
