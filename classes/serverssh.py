@@ -19,37 +19,25 @@ class ServerSSH(object):
         env.user = host.split('@')[0]
         env.project_root = yaml_config['path']
 
-        try:
-            env.python = yaml_config['python']
-        except KeyError:
-            env.python = os.path.join(env.project_root, 'venv/bin/python')
+        venv = yaml_config.get('venv_folder', 'venv')
+        env.venv = os.path.join(env.project_root, venv)
+        env.python = os.path.join(env.venv, 'bin/python')
+        env.pip = os.path.join(env.venv, 'bin/pip')
 
-        try:
-            env.pip = yaml_config['pip']
-        except KeyError:
-            env.pip = os.path.join(env.project_root, 'venv/bin/pip')
-
-        try:
-            self.branch = yaml_config['branch']
-        except KeyError:
-            self.branch = 'master'
-
-        try:
-            self.requirements = yaml_config['venv_requirements']
-        except KeyError:
-            self.requirements = 'requirements.txt'
-
-        self.config_server = yaml_config['work_service']
-        self.repository = yaml_config['repository']
-        self.path = yaml_config['path']
-        self.migrate_command = yaml_config['migrate_command']
+        self.branch = yaml_config.get('branch', 'master')
+        self.requirements = yaml_config.get('venv_requirements',
+                'requirements.txt')
+        self.config_server = yaml_config.get('work_service')
+        self.repository = yaml_config.get('repository')
+        self.path = yaml_config.get('path')
+        self.migrate_command = yaml_config.get('migrate_command')
 
     # Создание папки с виртуальным окружением
     def create_dir(self):
-        run('mkdir -p {}'.format(self.path))
+        run('mkdir -p {path}'.format(path=self.path))
 
     def delete_dir(self):
-        run('rm -rf {}'.format(self.path))
+        run('rm -rf {path}'.format(path=self.path))
 
     # Установка требуемых для нормальной работы плагинов
     def pip_install_requirements(self, requirements=None):
@@ -61,14 +49,15 @@ class ServerSSH(object):
 
     # Метод для изменения состояния какого-либо сервиса
     def control_service(self, action='restart', service=None):
-        if service is None:
+        if not service:
             service = self.config_server
-            if service == 'None':
+            if not service:
                 return
         run('sudo service {server_name} {action}'.format(server_name=service,
                                                          action=action))
 
-    # Метода для выполнения какой-либо программы внутри корневого каталога с проектом
+    # Метод для выполнения какой-либо программы внутри корневого каталога с
+    # проектом
     def run(self, action):
         with cd(env.project_root):
             run(action)
@@ -92,15 +81,19 @@ class ServerSSH(object):
     def init(self):
         with cd(env.project_root):
             run('git init')
-            run('git remote add origin {repository}'.format(repository=self.repository))
-            run('sudo apt-get -y install virtualenv')
-            run('virtualenv venv')
+            run('git remote add origin {repository}'.format(
+                repository=self.repository))
+            run('sudo apt-get -y install python-virtualenv')
+            # Previous command installs package python-virtualenv only on
+            # Debian based systems (Debian, Ubuntu, etc.)
+            run('virtualenv {venv}'.format(venv=env.venv))
         self.deploy()
 
     # Метод для изменения пути до репозитория
     def change_repository(self):
         with cd(env.project_root):
-            run('git remote set-url origin {repository}'.format(repository=self.repository))
+            run('git remote set-url origin {repository}'.format(
+                repository=self.repository))
 
     # Метод для обновления проекта
     def deploy(self):
@@ -120,13 +113,15 @@ class ServerSSH(object):
         with cd(env.project_root):
             run('git reset --hard HEAD^')
 
-    # Метод для полного обновления вируального окружения
+    # Метод для полного обновления виртуального окружения
     # Подразумевается, что в проекте присутствует файл requirements.txt
-    # Имя файла можно поменять в объекте с настройками
+    # Имя файла можно поменять в настройках
     def venv_update(self):
         with cd(env.project_root):
-            run('rm -rf venv')
-            run('virtualenv venv')
+            run('rm -rf {venv}'.format(venv=evn.venv))
+            run('virtualenv {venv}'.format(venv=evn.venv))
 
     def run_migrate_command(self):
-        self.run(self.migrate_command)
+        if self.migrate_command:
+            self.run(self.migrate_command)
+        return
