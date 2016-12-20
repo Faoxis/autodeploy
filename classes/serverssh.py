@@ -31,6 +31,7 @@ class ServerSSH(object):
         self.repository = yaml_config.get('repository')
         self.path = yaml_config.get('path')
         self.migrate_command = yaml_config.get('migrate_command')
+        self.python_version = yaml_config.get('python_version', 2)
 
     # Создание папки с виртуальным окружением
     def create_dir(self):
@@ -86,7 +87,8 @@ class ServerSSH(object):
             run('sudo apt-get -y install python-virtualenv')
             # Previous command installs package python-virtualenv only on
             # Debian based systems (Debian, Ubuntu, etc.)
-            run('virtualenv {venv}'.format(venv=env.venv))
+            # run('virtualenv {venv}'.format(venv=env.venv))
+            run('{venv_name} {venv}'.format(venv_name='pyvenv' if self.python_version == 3 else 'virtualenv', venv=env.venv))
         self.deploy()
 
     # Метод для изменения пути до репозитория
@@ -118,8 +120,8 @@ class ServerSSH(object):
     # Имя файла можно поменять в настройках
     def venv_update(self):
         with cd(env.project_root):
-            run('rm -rf {venv}'.format(venv=evn.venv))
-            run('virtualenv {venv}'.format(venv=evn.venv))
+            run('rm -rf {venv}'.format(venv=env.venv))
+            run('virtualenv {venv}'.format(venv=env.venv))
 
     def run_migrate_command(self):
         if self.migrate_command:

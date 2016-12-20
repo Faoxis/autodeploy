@@ -1,7 +1,7 @@
 branch: master # не обязательно
 venv_requirements: requirements.txt # не обязательно указывать
 venv_folder: venv # не обязательно
-
+python_version: 2 # не обязательно, по умолчанию 2, должно быть целым числом 2 или 3
 
 hosts:
     - sebuntu@192.168.15.149:22
